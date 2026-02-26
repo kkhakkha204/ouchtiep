@@ -2,8 +2,9 @@ import React, { useRef, useState } from "react"
 import { ImageUploader } from "~/components/ImageUploader"
 import { BurnEffect } from "~/components/BurnEffect"
 import { ShareForm } from "~/components/ShareForm"
+import { SaveForm } from "~components/SaveForm";
 
-type Phase = "write" | "burning" | "result" | "share" | "shared"
+type Phase = "write" | "burning" | "result" | "share" | "shared" | "save" | "saved"
 
 export default function Confession() {
   const [text, setText]         = useState("")
@@ -87,6 +88,30 @@ export default function Confession() {
     )
   }
 
+  if (phase === "save") {
+    return (
+        <SaveForm
+            content={text}
+            imageUrls={imageUrls}
+            onSuccess={() => setPhase("saved")}
+            onBack={() => setPhase("result")}
+        />
+    )
+  }
+
+  if (phase === "saved") {
+    return (
+        <div style={styles.resultContainer}>
+          <div style={styles.ashDeco}><span style={styles.ashIcon}>📦</span></div>
+          <p style={styles.resultTitle}>Đã cất giữ!</p>
+          <p style={styles.resultSub}>Confession đã được lưu vào kho riêng tư của bạn.</p>
+          <button style={styles.resetBtn} onClick={() => { setText(""); setImageUrls([]); setPhase("write") }}>
+            Viết confession khác
+          </button>
+        </div>
+    )
+  }
+
   // phase === "result"
   return (
     <div style={styles.resultContainer}>
@@ -104,9 +129,7 @@ export default function Confession() {
         </button>
         <button
           style={styles.saveBtn}
-          onClick={() => {
-            // TODO: cất giữ
-          }}
+          onClick={() => setPhase("save")}
         >
           <span>📦</span>
           <span>Cất giữ</span>
