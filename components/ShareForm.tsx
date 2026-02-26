@@ -2,6 +2,7 @@ import React, { useState } from "react";
 
 
 
+import { FIELDS } from "~/constants/fields";
 import { useAuth } from "~/context/AuthContext";
 import { supabase } from "~/lib/supabase";
 import { ImageUploader } from "~components/ImageUploader";
@@ -120,12 +121,16 @@ export const ShareForm: React.FC<ShareFormProps> = ({
       <div style={styles.section}>
         <p style={styles.label}>Thông tin (tuỳ chọn)</p>
         <div style={styles.fieldGroup}>
-          <input
+          <select
             value={field}
             onChange={(e) => setField(e.target.value)}
-            placeholder="Lĩnh vực (vd: Công nghệ, Kinh doanh...)"
-            style={styles.input}
-          />
+            style={styles.select}
+          >
+            <option value="">-- Chọn lĩnh vực --</option>
+            {FIELDS.map((f) => (
+              <option key={f} value={f}>{f}</option>
+            ))}
+          </select>
           <input
             value={position}
             onChange={(e) => setPosition(e.target.value)}
@@ -336,6 +341,19 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: "12px",
     outline: "none",
     caretColor: "#D84040"
+  },
+  select: {
+    width: "100%",
+    padding: "9px 12px",
+    background: "#2a1a1a",
+    border: "1px solid rgba(142,22,22,0.4)",
+    borderRadius: "8px",
+    color: "#EEEEEE",
+    fontFamily: "'Montserrat', sans-serif",
+    fontWeight: "500",
+    fontSize: "12px",
+    outline: "none",
+    cursor: "pointer"
   },
   levelBtns: {
     display: "flex",
