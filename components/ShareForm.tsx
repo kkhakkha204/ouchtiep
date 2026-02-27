@@ -1,15 +1,9 @@
-import React, { useState } from "react";
+import React, { useState } from "react"
 
-
-
-import { FIELDS } from "~/constants/fields";
-import { useAuth } from "~/context/AuthContext";
-import { supabase } from "~/lib/supabase";
-import { ImageUploader } from "~components/ImageUploader";
-
-
-
-
+import { FIELDS } from "~/constants/fields"
+import { useAuth } from "~/context/AuthContext"
+import { supabase } from "~/lib/supabase"
+import { ImageUploader } from "~components/ImageUploader"
 
 interface ShareFormProps {
   content: string
@@ -36,10 +30,10 @@ export const ShareForm: React.FC<ShareFormProps> = ({
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Auth inline nếu chưa đăng nhập
   const [authMode, setAuthMode] = useState<"login" | "register">("login")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [displayName, setDisplayName] = useState("")
   const [authError, setAuthError] = useState<string | null>(null)
   const [authLoading, setAuthLoading] = useState(false)
 
@@ -49,10 +43,18 @@ export const ShareForm: React.FC<ShareFormProps> = ({
       setAuthError("Vui lòng điền đầy đủ.")
       return
     }
+    if (authMode === "register" && !displayName.trim()) {
+      setAuthError("Vui lòng nhập tên hiển thị.")
+      return
+    }
     setAuthLoading(true)
-    const fn = authMode === "login" ? signIn : signUp
-    const { error } = await fn(email, password)
-    if (error) setAuthError(error)
+    if (authMode === "login") {
+      const { error } = await signIn(email, password)
+      if (error) setAuthError(error)
+    } else {
+      const { error } = await signUp(email, password, displayName)
+      if (error) setAuthError(error)
+    }
     setAuthLoading(false)
   }
 
@@ -86,7 +88,6 @@ export const ShareForm: React.FC<ShareFormProps> = ({
 
   return (
     <div style={styles.container}>
-      {/* Header */}
       <div style={styles.header}>
         <button style={styles.backBtn} onClick={onBack}>
           ← Quay lại
@@ -94,7 +95,6 @@ export const ShareForm: React.FC<ShareFormProps> = ({
         <p style={styles.title}>Chia sẻ thất bại</p>
       </div>
 
-      {/* Chế độ hiển thị */}
       <div style={styles.section}>
         <p style={styles.label}>Chế độ hiển thị</p>
         <div style={styles.modeToggle}>
@@ -117,18 +117,18 @@ export const ShareForm: React.FC<ShareFormProps> = ({
         </div>
       </div>
 
-      {/* Thông tin */}
       <div style={styles.section}>
         <p style={styles.label}>Thông tin (tuỳ chọn)</p>
         <div style={styles.fieldGroup}>
           <select
             value={field}
             onChange={(e) => setField(e.target.value)}
-            style={styles.select}
-          >
+            style={styles.select}>
             <option value="">-- Chọn lĩnh vực --</option>
             {FIELDS.map((f) => (
-              <option key={f} value={f}>{f}</option>
+              <option key={f} value={f}>
+                {f}
+              </option>
             ))}
           </select>
           <input
@@ -140,7 +140,6 @@ export const ShareForm: React.FC<ShareFormProps> = ({
         </div>
       </div>
 
-      {/* Mức độ thất bại */}
       <div style={styles.section}>
         <p style={styles.label}>
           Mức độ thất bại: <span style={styles.levelValue}>{level}/5</span>
@@ -160,20 +159,24 @@ export const ShareForm: React.FC<ShareFormProps> = ({
         </div>
       </div>
 
-      {/* Ảnh */}
       <div style={styles.section}>
         <p style={styles.label}>
           Ảnh đính kèm
           {imageUrls.length === 0 && (
-            <span style={{ color: "rgba(238,238,238,0.25)", marginLeft: "6px", textTransform: "none", fontWeight: 500 }}>
-        — chưa có ảnh nào
-      </span>
+            <span
+              style={{
+                color: "rgba(238,238,238,0.25)",
+                marginLeft: "6px",
+                textTransform: "none",
+                fontWeight: 500
+              }}>
+              — chưa có ảnh nào
+            </span>
           )}
         </p>
         <ImageUploader images={imageUrls} onChange={setImageUrls} />
       </div>
 
-      {/* Auth inline nếu chưa đăng nhập và chọn public */}
       {!user && mode === "public" && (
         <div style={styles.authSection}>
           <p style={styles.authNote}>
@@ -203,6 +206,16 @@ export const ShareForm: React.FC<ShareFormProps> = ({
               Đăng ký
             </button>
           </div>
+
+          {authMode === "register" && (
+            <input
+              type="text"
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+              placeholder="Tên hiển thị"
+              style={styles.input}
+            />
+          )}
           <input
             type="email"
             value={email}
@@ -235,10 +248,8 @@ export const ShareForm: React.FC<ShareFormProps> = ({
         </div>
       )}
 
-      {/* Error */}
       {error && <p style={styles.errorText}>{error}</p>}
 
-      {/* Submit — chỉ enable khi: đã login, hoặc chọn ẩn danh */}
       <button
         style={{
           ...styles.submitBtn,
@@ -263,11 +274,7 @@ const styles: Record<string, React.CSSProperties> = {
     minHeight: "340px",
     background: "#1D1616"
   },
-  header: {
-    display: "flex",
-    alignItems: "center",
-    gap: "12px"
-  },
+  header: { display: "flex", alignItems: "center", gap: "12px" },
   backBtn: {
     background: "none",
     border: "none",
@@ -286,11 +293,7 @@ const styles: Record<string, React.CSSProperties> = {
     color: "#EEEEEE",
     letterSpacing: "-0.3px"
   },
-  section: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "8px"
-  },
+  section: { display: "flex", flexDirection: "column", gap: "8px" },
   label: {
     fontFamily: "'Montserrat', sans-serif",
     fontWeight: "600",
@@ -299,14 +302,8 @@ const styles: Record<string, React.CSSProperties> = {
     textTransform: "uppercase",
     color: "rgba(238,238,238,0.4)"
   },
-  levelValue: {
-    color: "#D84040",
-    fontWeight: "700"
-  },
-  modeToggle: {
-    display: "flex",
-    gap: "8px"
-  },
+  levelValue: { color: "#D84040", fontWeight: "700" },
+  modeToggle: { display: "flex", gap: "8px" },
   modeBtn: {
     flex: 1,
     padding: "9px",
@@ -324,11 +321,7 @@ const styles: Record<string, React.CSSProperties> = {
     border: "1px solid rgba(216,64,64,0.5)",
     color: "#EEEEEE"
   },
-  fieldGroup: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "8px"
-  },
+  fieldGroup: { display: "flex", flexDirection: "column", gap: "8px" },
   input: {
     width: "100%",
     padding: "9px 12px",
@@ -355,10 +348,7 @@ const styles: Record<string, React.CSSProperties> = {
     outline: "none",
     cursor: "pointer"
   },
-  levelBtns: {
-    display: "flex",
-    gap: "6px"
-  },
+  levelBtns: { display: "flex", gap: "6px" },
   levelBtn: {
     flex: 1,
     padding: "8px",
@@ -392,10 +382,7 @@ const styles: Record<string, React.CSSProperties> = {
     color: "rgba(238,238,238,0.4)",
     lineHeight: "1.5"
   },
-  authToggle: {
-    display: "flex",
-    gap: "6px"
-  },
+  authToggle: { display: "flex", gap: "6px" },
   authToggleBtn: {
     flex: 1,
     padding: "6px",
@@ -448,9 +435,5 @@ const styles: Record<string, React.CSSProperties> = {
     boxShadow: "0 4px 16px rgba(216,64,64,0.25)",
     marginTop: "auto"
   },
-  btnDisabled: {
-    opacity: 0.35,
-    cursor: "not-allowed",
-    boxShadow: "none"
-  }
+  btnDisabled: { opacity: 0.35, cursor: "not-allowed", boxShadow: "none" }
 }

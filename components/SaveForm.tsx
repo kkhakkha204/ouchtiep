@@ -21,10 +21,10 @@ export const SaveForm: React.FC<SaveFormProps> = ({
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Auth inline
   const [authMode, setAuthMode] = useState<"login" | "register">("login")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [displayName, setDisplayName] = useState("")
   const [authError, setAuthError] = useState<string | null>(null)
   const [authLoading, setAuthLoading] = useState(false)
 
@@ -34,10 +34,18 @@ export const SaveForm: React.FC<SaveFormProps> = ({
       setAuthError("Vui lòng điền đầy đủ.")
       return
     }
+    if (authMode === "register" && !displayName.trim()) {
+      setAuthError("Vui lòng nhập tên hiển thị.")
+      return
+    }
     setAuthLoading(true)
-    const fn = authMode === "login" ? signIn : signUp
-    const { error } = await fn(email, password)
-    if (error) setAuthError(error)
+    if (authMode === "login") {
+      const { error } = await signIn(email, password)
+      if (error) setAuthError(error)
+    } else {
+      const { error } = await signUp(email, password, displayName)
+      if (error) setAuthError(error)
+    }
     setAuthLoading(false)
   }
 
@@ -64,7 +72,6 @@ export const SaveForm: React.FC<SaveFormProps> = ({
 
   return (
     <div style={styles.container}>
-      {/* Header */}
       <div style={styles.header}>
         <button style={styles.backBtn} onClick={onBack}>
           ← Quay lại
@@ -72,7 +79,6 @@ export const SaveForm: React.FC<SaveFormProps> = ({
         <p style={styles.title}>Cất giữ confession</p>
       </div>
 
-      {/* Mô tả */}
       <div style={styles.infoBox}>
         <span style={styles.infoIcon}>📦</span>
         <p style={styles.infoText}>
@@ -80,7 +86,6 @@ export const SaveForm: React.FC<SaveFormProps> = ({
         </p>
       </div>
 
-      {/* Auth inline nếu chưa đăng nhập */}
       {!user && (
         <div style={styles.authSection}>
           <p style={styles.authNote}>
@@ -110,6 +115,16 @@ export const SaveForm: React.FC<SaveFormProps> = ({
               Đăng ký
             </button>
           </div>
+
+          {authMode === "register" && (
+            <input
+              type="text"
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+              placeholder="Tên hiển thị"
+              style={styles.input}
+            />
+          )}
           <input
             type="email"
             value={email}
@@ -142,12 +157,12 @@ export const SaveForm: React.FC<SaveFormProps> = ({
         </div>
       )}
 
-      {/* Đã đăng nhập - hiện nút save */}
       {user && (
         <div style={styles.readyBox}>
           <span style={styles.readyIcon}>✓</span>
           <p style={styles.readyText}>
-            Đã đăng nhập với <strong>{user.email}</strong>
+            Đã đăng nhập với{" "}
+            <strong>{user.user_metadata?.full_name ?? user.email}</strong>
           </p>
         </div>
       )}
@@ -176,11 +191,7 @@ const styles: Record<string, React.CSSProperties> = {
     minHeight: "340px",
     background: "#1D1616"
   },
-  header: {
-    display: "flex",
-    alignItems: "center",
-    gap: "12px"
-  },
+  header: { display: "flex", alignItems: "center", gap: "12px" },
   backBtn: {
     background: "none",
     border: "none",
@@ -232,10 +243,7 @@ const styles: Record<string, React.CSSProperties> = {
     color: "rgba(238,238,238,0.4)",
     lineHeight: "1.5"
   },
-  authToggle: {
-    display: "flex",
-    gap: "6px"
-  },
+  authToggle: { display: "flex", gap: "6px" },
   authToggleBtn: {
     flex: 1,
     padding: "6px",
@@ -317,9 +325,5 @@ const styles: Record<string, React.CSSProperties> = {
     boxShadow: "0 4px 16px rgba(216,64,64,0.25)",
     marginTop: "auto"
   },
-  btnDisabled: {
-    opacity: 0.35,
-    cursor: "not-allowed",
-    boxShadow: "none"
-  }
+  btnDisabled: { opacity: 0.35, cursor: "not-allowed", boxShadow: "none" }
 }

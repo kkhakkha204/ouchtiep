@@ -10,6 +10,7 @@ export default function Account() {
   const [mode, setMode] = useState<AuthMode>("login")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [displayName, setDisplayName] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [successMsg, setSuccessMsg] = useState<string | null>(null)
@@ -26,6 +27,10 @@ export default function Account() {
       setError("Mật khẩu tối thiểu 6 ký tự.")
       return
     }
+    if (mode === "register" && !displayName.trim()) {
+      setError("Vui lòng nhập tên hiển thị.")
+      return
+    }
 
     setSubmitting(true)
 
@@ -33,7 +38,7 @@ export default function Account() {
       const { error } = await signIn(email, password)
       if (error) setError(mapError(error))
     } else {
-      const { error } = await signUp(email, password)
+      const { error } = await signUp(email, password, displayName)
       if (error) setError(mapError(error))
       else setSuccessMsg("Đăng ký thành công! Kiểm tra email để xác nhận.")
     }
@@ -41,7 +46,6 @@ export default function Account() {
     setSubmitting(false)
   }
 
-  // ── Loading ──────────────────────────────────────────────
   if (loading) {
     return (
       <div style={styles.centered}>
@@ -50,29 +54,23 @@ export default function Account() {
     )
   }
 
-  // ── Đã đăng nhập ─────────────────────────────────────────
   if (user) {
-    const avatarLetter = (user.email ?? "?")[0].toUpperCase()
+    const avatarLetter = (user.user_metadata?.full_name ??
+      user.email ??
+      "?")[0].toUpperCase()
 
     return (
       <div style={styles.loggedInContainer}>
-        {/* Avatar */}
         <div style={styles.avatarRing}>
           <div style={styles.avatar}>{avatarLetter}</div>
         </div>
-
-        {/* Info */}
         <div style={styles.userInfo}>
           <p style={styles.userName}>
             {user.user_metadata?.full_name ?? "Chiến binh ẩn danh"}
           </p>
           <p style={styles.userEmail}>{user.email}</p>
         </div>
-
-        {/* Divider */}
         <div style={styles.divider} />
-
-        {/* Sign out */}
         <button style={styles.signOutBtn} onClick={signOut}>
           <span>↩</span>
           <span>Đăng xuất</span>
@@ -81,10 +79,8 @@ export default function Account() {
     )
   }
 
-  // ── Chưa đăng nhập ────────────────────────────────────────
   return (
     <div style={styles.authContainer}>
-      {/* Mode toggle */}
       <div style={styles.modeToggle}>
         <button
           style={{
@@ -112,8 +108,22 @@ export default function Account() {
         </button>
       </div>
 
-      {/* Form */}
       <div style={styles.form}>
+        {/* Display name — chỉ hiện khi đăng ký */}
+        {mode === "register" && (
+          <div style={styles.fieldGroup}>
+            <label style={styles.label}>Tên hiển thị</label>
+            <input
+              type="text"
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+              placeholder="Tên của bạn"
+              style={styles.input}
+              onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
+            />
+          </div>
+        )}
+
         <div style={styles.fieldGroup}>
           <label style={styles.label}>Email</label>
           <input
@@ -138,7 +148,6 @@ export default function Account() {
           />
         </div>
 
-        {/* Error */}
         {error && (
           <div style={styles.errorBox}>
             <span style={styles.errorIcon}>⚠</span>
@@ -146,7 +155,6 @@ export default function Account() {
           </div>
         )}
 
-        {/* Success */}
         {successMsg && (
           <div style={styles.successBox}>
             <span>✓</span>
@@ -154,7 +162,6 @@ export default function Account() {
           </div>
         )}
 
-        {/* Submit */}
         <button
           style={{
             ...styles.submitBtn,
@@ -173,7 +180,6 @@ export default function Account() {
   )
 }
 
-// ── Error mapping ─────────────────────────────────────────
 function mapError(msg: string): string {
   if (msg.includes("Invalid login credentials"))
     return "Email hoặc mật khẩu không đúng."
@@ -185,7 +191,6 @@ function mapError(msg: string): string {
   return msg
 }
 
-// ── Styles ────────────────────────────────────────────────
 const styles: Record<string, React.CSSProperties> = {
   centered: {
     display: "flex",
@@ -193,7 +198,6 @@ const styles: Record<string, React.CSSProperties> = {
     justifyContent: "center",
     minHeight: "280px"
   },
-
   spinner: {
     width: "24px",
     height: "24px",
@@ -202,8 +206,6 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: "50%",
     animation: "spin 0.8s linear infinite"
   },
-
-  // --- Logged in ---
   loggedInContainer: {
     padding: "28px 20px 24px",
     display: "flex",
@@ -212,14 +214,12 @@ const styles: Record<string, React.CSSProperties> = {
     gap: "12px",
     minHeight: "280px"
   },
-
   avatarRing: {
     padding: "3px",
     borderRadius: "50%",
     background: "linear-gradient(135deg, #D84040, #8E1616)",
     marginBottom: "4px"
   },
-
   avatar: {
     width: "56px",
     height: "56px",
@@ -234,14 +234,12 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: "22px",
     color: "#EEEEEE"
   },
-
   userInfo: {
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
     gap: "4px"
   },
-
   userName: {
     fontFamily: "'Montserrat', sans-serif",
     fontWeight: "700",
@@ -249,7 +247,6 @@ const styles: Record<string, React.CSSProperties> = {
     color: "#EEEEEE",
     letterSpacing: "-0.3px"
   },
-
   userEmail: {
     fontFamily: "'Montserrat', sans-serif",
     fontWeight: "500",
@@ -257,14 +254,12 @@ const styles: Record<string, React.CSSProperties> = {
     color: "rgba(238,238,238,0.35)",
     letterSpacing: "0.2px"
   },
-
   divider: {
     width: "100%",
     height: "1px",
     background: "rgba(142,22,22,0.25)",
     margin: "4px 0"
   },
-
   signOutBtn: {
     width: "100%",
     padding: "11px 16px",
@@ -280,11 +275,8 @@ const styles: Record<string, React.CSSProperties> = {
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    gap: "8px",
-    transition: "border-color 0.2s, color 0.2s"
+    gap: "8px"
   },
-
-  // --- Auth form ---
   authContainer: {
     padding: "20px 20px 24px",
     display: "flex",
@@ -292,7 +284,6 @@ const styles: Record<string, React.CSSProperties> = {
     gap: "16px",
     minHeight: "280px"
   },
-
   modeToggle: {
     display: "flex",
     background: "rgba(238,238,238,0.04)",
@@ -300,7 +291,6 @@ const styles: Record<string, React.CSSProperties> = {
     padding: "3px",
     gap: "3px"
   },
-
   modeBtn: {
     flex: 1,
     padding: "8px",
@@ -312,28 +302,15 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: "600",
     fontSize: "11px",
     letterSpacing: "0.5px",
-    cursor: "pointer",
-    transition: "all 0.2s"
+    cursor: "pointer"
   },
-
   modeBtnActive: {
     background: "rgba(216,64,64,0.15)",
     color: "#EEEEEE",
     borderRadius: "6px"
   },
-
-  form: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "12px"
-  },
-
-  fieldGroup: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "6px"
-  },
-
+  form: { display: "flex", flexDirection: "column", gap: "12px" },
+  fieldGroup: { display: "flex", flexDirection: "column", gap: "6px" },
   label: {
     fontFamily: "'Montserrat', sans-serif",
     fontWeight: "600",
@@ -342,7 +319,6 @@ const styles: Record<string, React.CSSProperties> = {
     textTransform: "uppercase",
     color: "rgba(238,238,238,0.4)"
   },
-
   input: {
     width: "100%",
     padding: "10px 14px",
@@ -356,7 +332,6 @@ const styles: Record<string, React.CSSProperties> = {
     outline: "none",
     caretColor: "#D84040"
   },
-
   errorBox: {
     display: "flex",
     alignItems: "flex-start",
@@ -371,13 +346,7 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: "11px",
     lineHeight: "1.5"
   },
-
-  errorIcon: {
-    fontSize: "12px",
-    flexShrink: 0,
-    marginTop: "1px"
-  },
-
+  errorIcon: { fontSize: "12px", flexShrink: 0, marginTop: "1px" },
   successBox: {
     display: "flex",
     alignItems: "center",
@@ -391,7 +360,6 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: "600",
     fontSize: "11px"
   },
-
   submitBtn: {
     width: "100%",
     padding: "13px",
@@ -408,10 +376,5 @@ const styles: Record<string, React.CSSProperties> = {
     boxShadow: "0 4px 16px rgba(216,64,64,0.25)",
     marginTop: "4px"
   },
-
-  submitBtnDisabled: {
-    opacity: 0.45,
-    cursor: "not-allowed",
-    boxShadow: "none"
-  }
+  submitBtnDisabled: { opacity: 0.45, cursor: "not-allowed", boxShadow: "none" }
 }
